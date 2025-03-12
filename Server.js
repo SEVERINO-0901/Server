@@ -6,18 +6,12 @@ const client = new sdk.Client();
 const storage = new sdk.Storage(client);
 
 client
-  .setEndpoint('https://cloud.appwrite.io/v1') // Substitua pelo seu endpoint Appwrite
+  .setEndpoint('https://cloud.appwrite.io/v1') // Substitua pelo seu endpoint do Appwrite
   .setProject('67d17871002661a1db89'); // Substitua pelo seu ID de projeto Appwrite
 
-// Função principal
 module.exports = async (req, res) => {
   try {
-    // Verifique se req e res não estão undefined
-    if (!req || !res) {
-      throw new Error('Request or response object is undefined');
-    }
-
-    const bucketId = '67d17b190014e53852e2';  // Exemplo de bucketId
+    const bucketId = '67d17b190014e53852e2'; // Substitua pelo ID do seu bucket
     const ftpConfig = {
       host: 'www.palmasistemas.com.br',
       user: 'palmasistemas',
@@ -25,25 +19,19 @@ module.exports = async (req, res) => {
       secure: false // Defina como true se for FTPS
     };
 
-    // 1. Obter todos os arquivos do bucket
+    // 1. Listar todos os arquivos do bucket
     const files = await storage.listFiles(bucketId); // Lista todos os arquivos do bucket
-    if (!files || !files.files) {
-      throw new Error('No files found in the bucket');
-    }
 
     // 2. Conectar ao servidor FTP
     const ftpClient = new ftp.Client();
-    await ftpClient.access(ftpConfig);  // Conecta ao servidor FTP
+    await ftpClient.access(ftpConfig); // Conecta ao servidor FTP
 
     // 3. Enviar todos os arquivos para o FTP
     for (const file of files.files) {
       const fileData = await storage.getFileView(bucketId, file.$id); // Obtém os dados do arquivo
-      if (!fileData) {
-        throw new Error(`Failed to retrieve file data for ${file.name}`);
-      }
 
       // Enviar o arquivo para o FTP
-      await ftpClient.uploadFrom(fileData, 'www/Palma/' + file.name);
+      await ftpClient.uploadFrom(fileData, 'www/Palma/' + file.name); // Substitua pelo caminho desejado
       console.log(`Arquivo ${file.name} enviado para o FTP!`);
     }
 
@@ -56,19 +44,14 @@ module.exports = async (req, res) => {
     // Fechar a conexão FTP
     ftpClient.close();
 
-    // Resposta de sucesso
-    if (res) {
-      res.send({ success: true, message: 'Todos os arquivos enviados para o FTP e deletados do Appwrite.' });
-    } else {
-      throw new Error('Response object is undefined');
-    }
+    // Resposta de sucesso - Retorne a resposta diretamente no formato JSON
+    return res.json({ success: true, message: 'Todos os arquivos enviados para o FTP e deletados do Appwrite.' });
   } catch (error) {
     console.error('Erro ao processar os arquivos:', error);
-    if (res) {
-      res.status(500).send({ success: false, message: 'Erro ao processar os arquivos', error: error.message });
-    } else {
-      console.error('Response object is undefined, cannot send response');
-    }
+
+    // Resposta de erro - Retorne a resposta de erro diretamente no formato JSON
+    return res.json({ success: false, message: 'Erro ao processar os arquivos', error: error.message });
   }
 };
+
 
