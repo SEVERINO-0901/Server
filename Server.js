@@ -12,7 +12,12 @@ client
 // Função principal
 module.exports = async (req, res) => {
   try {
-    const bucketId = '67d17b190014e53852e2'; // Substitua pelo ID do seu bucket
+    // Verifique se req e res não estão undefined
+    if (!req || !res) {
+      throw new Error('Request or response object is undefined');
+    }
+
+    const bucketId = '67d17b190014e53852e2';  // Exemplo de bucketId
     const ftpConfig = {
       host: 'www.palmasistemas.com.br',
       user: 'palmasistemas',
@@ -20,19 +25,25 @@ module.exports = async (req, res) => {
       secure: false // Defina como true se for FTPS
     };
 
-    // 1. Listar todos os arquivos do bucket
+    // 1. Obter todos os arquivos do bucket
     const files = await storage.listFiles(bucketId); // Lista todos os arquivos do bucket
+    if (!files || !files.files) {
+      throw new Error('No files found in the bucket');
+    }
 
     // 2. Conectar ao servidor FTP
     const ftpClient = new ftp.Client();
-    await ftpClient.access(ftpConfig); // Conecta ao servidor FTP
+    await ftpClient.access(ftpConfig);  // Conecta ao servidor FTP
 
     // 3. Enviar todos os arquivos para o FTP
     for (const file of files.files) {
       const fileData = await storage.getFileView(bucketId, file.$id); // Obtém os dados do arquivo
+      if (!fileData) {
+        throw new Error(`Failed to retrieve file data for ${file.name}`);
+      }
 
       // Enviar o arquivo para o FTP
-      await ftpClient.uploadFrom(fileData, 'www/Palma/' + file.name); // Substitua pelo caminho desejado
+      await ftpClient.uploadFrom(fileData, 'www/Palma/' + file.name);
       console.log(`Arquivo ${file.name} enviado para o FTP!`);
     }
 
@@ -46,9 +57,18 @@ module.exports = async (req, res) => {
     ftpClient.close();
 
     // Resposta de sucesso
-    res.send({ success: true, message: 'Todos os arquivos enviados para o FTP e deletados do Appwrite.' });
+    if (res) {
+      res.send({ success: true, message: 'Todos os arquivos enviados para o FTP e deletados do Appwrite.' });
+    } else {
+      throw new Error('Response object is undefined');
+    }
   } catch (error) {
     console.error('Erro ao processar os arquivos:', error);
-    res.status(500).send({ success: false, message: 'Erro ao processar os arquivos', error: error.message });
+    if (res) {
+      res.status(500).send({ success: false, message: 'Erro ao processar os arquivos', error: error.message });
+    } else {
+      console.error('Response object is undefined, cannot send response');
+    }
   }
 };
+
