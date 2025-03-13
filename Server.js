@@ -25,7 +25,7 @@ export default async function ({ res }) {
             host: process.env.FTP_HOST,
             user: process.env.FTP_USER,
             password: process.env.FTP_PASSWORD,
-            secure: false,
+            secure: true,
         });
 
         // Garante que a pasta raiz exista no FTP
