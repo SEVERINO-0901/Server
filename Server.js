@@ -20,7 +20,10 @@ export default async function ({ res }) {
 
         const clientFTP = new ftp.Client();
         clientFTP.ftp.verbose = true;
-
+        
+        // Ignorar a verificação do certificado SSL
+        clientFTP.ftp.secureOptions = { rejectUnauthorized: false };
+        
         await clientFTP.access({
             host: process.env.FTP_HOST,
             user: process.env.FTP_USER,
