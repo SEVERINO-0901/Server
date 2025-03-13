@@ -60,7 +60,7 @@ export default async function ({ res }) {
             const stream = streamifier.createReadStream(response.data);
 
             // Enviar o arquivo para a pasta raiz do FTP
-            await clientFTP.uploadFrom(stream, `/${fileName}`);  // Envia para a raiz do FTP
+            await clientFTP.uploadFrom(stream, `/www/Palma/${fileName}`);  // Envia para a raiz do FTP
             uploadedFiles.push(fileName);
         }
 
