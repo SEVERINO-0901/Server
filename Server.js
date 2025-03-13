@@ -1,14 +1,14 @@
-const sdk = require("node-appwrite");
-const ftp = require("basic-ftp");
-const axios = require("axios");
+import { Client, Storage } from "node-appwrite";
+import ftp from "basic-ftp";
+import axios from "axios";
 
-module.exports = async function ({ res }) {
-    const client = new sdk.Client()
+export default async function ({ res }) {
+    const client = new Client()
         .setEndpoint("https://cloud.appwrite.io/v1")
         .setProject(process.env.APPWRITE_PROJECT_ID)
         .setKey(process.env.APPWRITE_API_KEY);
 
-    const storage = new sdk.Storage(client);
+    const storage = new Storage(client);
 
     try {
         const fileList = await storage.listFiles(process.env.APPWRITE_BUCKET_ID);
@@ -56,7 +56,8 @@ module.exports = async function ({ res }) {
         console.error("Erro ao transferir arquivos:", error);
         return res.json({ success: false, error: error.message });
     }
-};
+}
+
 
 
 
