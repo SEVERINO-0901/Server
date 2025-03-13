@@ -1,6 +1,7 @@
 import { Client, Storage } from "node-appwrite";
 import ftp from "basic-ftp";
 import axios from "axios";
+import streamifier from "streamifier";  // Importar streamifier
 
 export default async function ({ res }) {
     const client = new Client()
@@ -50,8 +51,11 @@ export default async function ({ res }) {
 
             console.log(`Enviando ${fileName} para o FTP...`);
 
+            // Converter o Buffer para stream
+            const stream = streamifier.createReadStream(response.data);
+
             // Enviar o arquivo para a pasta FTP
-            await clientFTP.uploadFrom(Buffer.from(response.data), `${process.env.FTP_TARGET_FOLDER}/${fileName}`);
+            await clientFTP.uploadFrom(stream, `${process.env.FTP_TARGET_FOLDER}/${fileName}`);
             uploadedFiles.push(fileName);
         }
 
@@ -64,6 +68,7 @@ export default async function ({ res }) {
         return res.json({ success: false, error: error.message });
     }
 }
+
 
 
 
