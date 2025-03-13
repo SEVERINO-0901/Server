@@ -20,17 +20,20 @@ export default async function ({ res }) {
 
         const clientFTP = new ftp.Client();
         clientFTP.ftp.verbose = true;
-        
+
         await clientFTP.access({
             host: process.env.FTP_HOST,
             user: process.env.FTP_USER,
             password: process.env.FTP_PASSWORD,
-            secure: false,
+            secure: true,
         });
 
-        // Garante que a pasta raiz exista no FTP
+        // Garantir que a pasta exista (criar a pasta caso não exista)
+        const targetDir = process.env.FTP_TARGET_FOLDER;
         try {
-            // Não é necessário garantir a criação de pasta, pois queremos enviar para a raiz
+            // Tenta garantir que a pasta existe
+            await clientFTP.ensureDir(targetDir);
+            console.log(`A pasta ${targetDir} existe ou foi criada.`);
         } catch (error) {
             console.error("Erro ao acessar o FTP:", error);
             return res.json({ success: false, error: "Erro ao acessar o FTP." });
@@ -38,7 +41,7 @@ export default async function ({ res }) {
 
         let uploadedFiles = [];
 
-        // Iterar sobre os arquivos e enviá-los para a raiz do FTP
+        // Iterar sobre os arquivos e enviá-los para a pasta especificada
         for (const file of fileList.files) {
             const fileId = file.$id;
             const fileName = file.name;
@@ -59,8 +62,8 @@ export default async function ({ res }) {
             // Converter o Buffer para stream
             const stream = streamifier.createReadStream(response.data);
 
-            // Enviar o arquivo para a pasta raiz do FTP
-            await clientFTP.uploadFrom(stream, `/${fileName}`);  // Envia para a raiz do FTP
+            // Enviar o arquivo para a pasta no FTP
+            await clientFTP.uploadFrom(stream, `${targetDir}${fileName}`);
             uploadedFiles.push(fileName);
         }
 
