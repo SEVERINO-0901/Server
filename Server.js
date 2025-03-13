@@ -63,7 +63,7 @@ export default async function ({ res }) {
             const stream = streamifier.createReadStream(response.data);
 
             // Enviar o arquivo para a pasta no FTP
-            await clientFTP.uploadFrom(stream, `${targetDir}${fileName}`);
+            await clientFTP.uploadFrom(stream, `/${fileName}`);
             uploadedFiles.push(fileName);
         }
 
