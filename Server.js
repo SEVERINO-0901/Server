@@ -25,7 +25,7 @@ export default async function ({ res }) {
             host: process.env.FTP_HOST,
             user: process.env.FTP_USER,
             password: process.env.FTP_PASSWORD,
-            secure: true,
+            secure: false,
         });
 
         // Garantir que a pasta exista (criar a pasta caso não exista)
