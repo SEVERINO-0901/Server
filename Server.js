@@ -1,56 +1,51 @@
-const ftp = require('basic-ftp'); // Biblioteca para FTP
-const sdk = require('node-appwrite'); // SDK do Appwrite
+const sdk = require('node-appwrite');
+const ftp = require('basic-ftp');
+const axios = require('axios');
 
-// Configuração do Appwrite
-const client = new sdk.Client();
-const storage = new sdk.Storage(client);
+module.exports = async function ({ req, res }) {
+  // Configura o Appwrite SDK
+  const client = new sdk.Client()
+      .setEndpoint("https://cloud.appwrite.io/v1") // Substitua pelo seu endpoint Appwrite
+      .setProject(process.env.APPWRITE_PROJECT_ID)
+      .setKey(process.env.APPWRITE_API_KEY);
 
-client
-  .setEndpoint('https://cloud.appwrite.io/v1') // Substitua pelo seu endpoint do Appwrite
-  .setProject('67d17871002661a1db89'); // Substitua pelo seu ID de projeto Appwrite
+  const storage = new sdk.Storage(client);
 
-module.exports = async (req, res) => {
   try {
-    const bucketId = '67d17b190014e53852e2'; // Substitua pelo ID do seu bucket
-    const ftpConfig = {
-      host: 'www.palmasistemas.com.br',
-      user: 'palmasistemas',
-      password: 'gremio1983',
-      secure: false // Defina como true se for FTPS
-    };
+      // O Appwrite Webhook envia os dados no req.payload
+      const fileId = req.payload.$id; // ID do arquivo enviado
+      const fileName = req.payload.name;
 
-    // 1. Listar todos os arquivos do bucket
-    const files = await storage.listFiles(bucketId); // Lista todos os arquivos do bucket
+      console.log(`Recebido arquivo ${fileName} (ID: ${fileId})`);
 
-    // 2. Conectar ao servidor FTP
-    const ftpClient = new ftp.Client();
-    await ftpClient.access(ftpConfig); // Conecta ao servidor FTP
+      // Baixar o arquivo do Appwrite Storage
+      const response = await axios.get(`https://cloud.appwrite.io/v1/storage/buckets/${process.env.APPWRITE_BUCKET_ID}/files/${fileId}/view?project=${process.env.APPWRITE_PROJECT_ID}`, {
+          headers: { "X-Appwrite-Key": process.env.APPWRITE_API_KEY },
+          responseType: "arraybuffer",
+      });
 
-    // 3. Enviar todos os arquivos para o FTP
-    for (const file of files.files) {
-      const fileData = await storage.getFileView(bucketId, file.$id); // Obtém os dados do arquivo
+      // Conectar ao servidor FTP
+      const clientFTP = new ftp.Client();
+      clientFTP.ftp.verbose = true;
 
-      // Enviar o arquivo para o FTP
-      await ftpClient.uploadFrom(fileData, 'www/Palma/' + file.name); // Substitua pelo caminho desejado
-      console.log(`Arquivo ${file.name} enviado para o FTP!`);
-    }
+      await clientFTP.access({
+          host: process.env.FTP_HOST,
+          user: process.env.FTP_USER,
+          password: process.env.FTP_PASSWORD,
+          secure: false, // Defina como true se o servidor exigir SSL/TLS
+      });
 
-    // 4. Deletar todos os arquivos do bucket após a transferência
-    for (const file of files.files) {
-      await storage.deleteFile(bucketId, file.$id); // Deleta o arquivo do bucket
-      console.log(`Arquivo ${file.name} deletado do Appwrite!`);
-    }
+      // Enviar arquivo para o FTP
+      await clientFTP.uploadFrom(Buffer.from(response.data), `${process.env.FTP_TARGET_FOLDER}/${fileName}`);
+      clientFTP.close();
 
-    // Fechar a conexão FTP
-    ftpClient.close();
+      console.log(`Arquivo ${fileName} enviado para FTP com sucesso!`);
 
-    // Resposta de sucesso - Retorne a resposta diretamente no formato JSON
-    return res.json({ success: true, message: 'Todos os arquivos enviados para o FTP e deletados do Appwrite.' });
+      return res.json({ success: true, message: `Arquivo ${fileName} enviado para FTP com sucesso!` });
+
   } catch (error) {
-    console.error('Erro ao processar os arquivos:', error);
-
-    // Resposta de erro - Retorne a resposta de erro diretamente no formato JSON
-    return res.json({ success: false, message: 'Erro ao processar os arquivos', error: error.message });
+      console.error("Erro ao transferir arquivo:", error);
+      return res.json({ success: false, error: error.message });
   }
 };
 
