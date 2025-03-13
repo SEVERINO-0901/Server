@@ -4,13 +4,14 @@ import axios from "axios";
 
 export default async function ({ res }) {
     const client = new Client()
-        .setEndpoint("https://cloud.appwrite.io/v1")
+        .setEndpoint("https://cloud.appwrite.io/v1") // Ajuste o endpoint conforme necessário
         .setProject(process.env.APPWRITE_PROJECT_ID)
         .setKey(process.env.APPWRITE_API_KEY);
 
     const storage = new Storage(client);
 
     try {
+        // Listar todos os arquivos no bucket
         const fileList = await storage.listFiles(process.env.APPWRITE_BUCKET_ID);
         if (fileList.total === 0) {
             return res.json({ success: false, message: "Nenhum arquivo encontrado no bucket." });
@@ -26,14 +27,19 @@ export default async function ({ res }) {
             secure: false,
         });
 
+        // Garante que a pasta de destino exista
+        await clientFTP.ensureDir(process.env.FTP_TARGET_FOLDER); // Cria a pasta se não existir
+
         let uploadedFiles = [];
 
+        // Iterar sobre os arquivos e enviá-los para o FTP
         for (const file of fileList.files) {
             const fileId = file.$id;
             const fileName = file.name;
 
             console.log(`Baixando ${fileName}...`);
 
+            // Obter o arquivo do Appwrite com o GET
             const response = await axios.get(
                 `https://cloud.appwrite.io/v1/storage/buckets/${process.env.APPWRITE_BUCKET_ID}/files/${fileId}/view?project=${process.env.APPWRITE_PROJECT_ID}`,
                 {
@@ -44,6 +50,7 @@ export default async function ({ res }) {
 
             console.log(`Enviando ${fileName} para o FTP...`);
 
+            // Enviar o arquivo para a pasta FTP
             await clientFTP.uploadFrom(Buffer.from(response.data), `${process.env.FTP_TARGET_FOLDER}/${fileName}`);
             uploadedFiles.push(fileName);
         }
@@ -57,6 +64,7 @@ export default async function ({ res }) {
         return res.json({ success: false, error: error.message });
     }
 }
+
 
 
 
