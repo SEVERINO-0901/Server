@@ -21,14 +21,11 @@ export default async function ({ res }) {
         const clientFTP = new ftp.Client();
         clientFTP.ftp.verbose = true;
         
-        // Ignorar a verificação do certificado SSL
-        clientFTP.ftp.secureOptions = { rejectUnauthorized: false };
-        
         await clientFTP.access({
             host: process.env.FTP_HOST,
             user: process.env.FTP_USER,
             password: process.env.FTP_PASSWORD,
-            secure: true,
+            secure: false,
         });
 
         // Garante que a pasta raiz exista no FTP
@@ -63,7 +60,7 @@ export default async function ({ res }) {
             const stream = streamifier.createReadStream(response.data);
 
             // Enviar o arquivo para a pasta raiz do FTP
-            await clientFTP.uploadFrom(stream, `/www/Palma/${fileName}`);  // Envia para a raiz do FTP
+            await clientFTP.uploadFrom(stream, `/${fileName}`);  // Envia para a raiz do FTP
             uploadedFiles.push(fileName);
         }
 
