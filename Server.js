@@ -5,7 +5,7 @@ import streamifier from "streamifier";  // Importar streamifier
 
 export default async function ({ res }) {
     const client = new Client()
-        .setEndpoint("https://cloud.appwrite.io/v1") // Ajuste o endpoint conforme necessário
+        .setEndpoint("https://cloud.appwrite.io/v1")
         .setProject(process.env.APPWRITE_PROJECT_ID)
         .setKey(process.env.APPWRITE_API_KEY);
 
@@ -28,12 +28,17 @@ export default async function ({ res }) {
             secure: false,
         });
 
-        // Garante que a pasta de destino exista
-        await clientFTP.ensureDir(process.env.FTP_TARGET_FOLDER); // Cria a pasta se não existir
+        // Garante que a pasta raiz exista no FTP
+        try {
+            // Não é necessário garantir a criação de pasta, pois queremos enviar para a raiz
+        } catch (error) {
+            console.error("Erro ao acessar o FTP:", error);
+            return res.json({ success: false, error: "Erro ao acessar o FTP." });
+        }
 
         let uploadedFiles = [];
 
-        // Iterar sobre os arquivos e enviá-los para o FTP
+        // Iterar sobre os arquivos e enviá-los para a raiz do FTP
         for (const file of fileList.files) {
             const fileId = file.$id;
             const fileName = file.name;
@@ -54,8 +59,8 @@ export default async function ({ res }) {
             // Converter o Buffer para stream
             const stream = streamifier.createReadStream(response.data);
 
-            // Enviar o arquivo para a pasta FTP
-            await clientFTP.uploadFrom(stream, `${process.env.FTP_TARGET_FOLDER}/${fileName}`);
+            // Enviar o arquivo para a pasta raiz do FTP
+            await clientFTP.uploadFrom(stream, `/${fileName}`);  // Envia para a raiz do FTP
             uploadedFiles.push(fileName);
         }
 
@@ -68,6 +73,7 @@ export default async function ({ res }) {
         return res.json({ success: false, error: error.message });
     }
 }
+
 
 
 
